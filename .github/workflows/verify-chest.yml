@@ -1,0 +1,49 @@
+name: Validate chest models and dyes
+on:
+  push:
+    branches: [verify/chest-642-675]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pr: 642
+            sha: 814d234774e3627e775cada27d93ef4b091539e8
+          - pr: 675
+            sha: 1b312f998ac6bde9a59fbe2ea890332fe05e007b
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Fetch exact source revision
+        env:
+          REVISION: ${{ matrix.sha }}
+        run: |
+          git init source
+          git -C source remote add origin https://github.com/zunath/SWLOR_Haks.git
+          git -C source config remote.origin.promisor true
+          git -C source config remote.origin.partialclonefilter blob:none
+          git -C source fetch --filter=blob:none --no-tags origin "$REVISION"
+          git -C source sparse-checkout set --no-cone '/tools/' '/hakbuilder.json' '/sw_2da/' '*.mdl' '*.lod'
+          git -C source checkout --detach FETCH_HEAD
+          test "$(git -C source rev-parse HEAD)" = "$REVISION"
+      - name: Validate dye appearance
+        if: matrix.pr == 642
+        working-directory: source
+        run: python3 -B tools/CheckDyeAppearance.py
+      - name: Regenerate and check part skin aliases
+        if: matrix.pr == 675
+        working-directory: source
+        run: |
+          python3 -m pip install numpy
+          python3 -B tools/GeneratePartSkinModels.py --apply
+          git diff --stat
+          git diff --check
+          git diff -- tools/PartSkinModels.json
+          python3 -B tools/GeneratePartSkinModels.py --check
+      - name: Run chest binding tests
+        if: matrix.pr == 675
+        working-directory: source
+        run: cd tools && python3 -B -m unittest TestChestSkirtBindings TestAuthoredChestBindings
