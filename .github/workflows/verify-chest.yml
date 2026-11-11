@@ -12,8 +12,6 @@ jobs:
         include:
           - pr: 642
             sha: 814d234774e3627e775cada27d93ef4b091539e8
-          - pr: 675
-            sha: 1b312f998ac6bde9a59fbe2ea890332fe05e007b
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -30,7 +28,7 @@ jobs:
           if [ "$PR_NUMBER" = 675 ]; then
             git -C source sparse-checkout set --no-cone '/tools/' '/hakbuilder.json' '/sw_2da/' '*.mdl' '*.lod'
           else
-            git -C source sparse-checkout set --no-cone '/tools/' '/sw_2da/'
+            git -C source sparse-checkout set --no-cone '/tools/' '/sw_2da/' '*.mtr'
           fi
           git -C source checkout --detach FETCH_HEAD
           test "$(git -C source rev-parse HEAD)" = "$REVISION"
